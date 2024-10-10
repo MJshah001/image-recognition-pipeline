@@ -26,7 +26,8 @@ import java.util.List;
 public class CarDetection {
 
     private static final String S3_BUCKET_URL = "https://njit-cs-643.s3.us-east-1.amazonaws.com/";
-    private static final String SQS_QUEUE_URL = "https://sqs.us-east-1.amazonaws.com/098150390570/CarDetectionQueue";
+    private static final String SQS_QUEUE_URL = "https://sqs.us-east-1.amazonaws.com/098150390570/CarDetectionQueue.fifo";
+						// "https://sqs.us-east-1.amazonaws.com/098150390570/CarDetectionQueue";
 
     private static RekognitionClient rekognitionClient;
     private static SqsClient sqsClient;
@@ -119,6 +120,8 @@ public class CarDetection {
             SendMessageRequest sendMsgRequest = SendMessageRequest.builder()
                     .queueUrl(SQS_QUEUE_URL)
                     .messageBody(message)
+                    .messageGroupId("carDetectionGroup") // Required for FIFO queue
+                    .messageDeduplicationId(message)     // Optional: If content-based deduplication is not enabled, ensure deduplication
                     .build();
             sqsClient.sendMessage(sendMsgRequest);
             System.out.println("Sent message to SQS: " + message);
