@@ -49,6 +49,15 @@ public class CarDetection {
             String imageName = i + ".jpg";
             String imageUrl = S3_BUCKET_URL + imageName;
             downloadAndDetectCars(imageUrl, imageName);
+
+	    // delay of 2 seconds (2000 milliseconds)
+	    try {
+	        Thread.sleep(2000); // Adjust the delay as needed
+	    } catch (InterruptedException e) {
+	        Thread.currentThread().interrupt(); // Restore the interrupted status
+	        System.out.println("Sleep interrupted");
+	    }
+
         }
 
         // Send termination signal (-1) to SQS to notify Instance B
