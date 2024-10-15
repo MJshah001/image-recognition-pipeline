@@ -29,8 +29,10 @@ public class CarTextDetection {
     private static final String S3_BUCKET_URL = "https://njit-cs-643.s3.us-east-1.amazonaws.com/";
     private static final String SQS_QUEUE_URL = "https://sqs.us-east-1.amazonaws.com/098150390570/CarDetectionQueue.fifo";
     private static final String TEMP_DIR = "/tmp/";
-    private static final String OUTPUT_DIR = "/home/ec2-user/aws-java-project/textdetection/";
-
+    private static final String OUTPUT_DIR = "/home/ec2-user/as1/image-recognition-pipeline/textdetection/";
+    
+    private static List<String> detectedTexts = new ArrayList<>();
+    
     private static RekognitionClient rekognitionClient;
     private static SqsClient sqsClient;
 
@@ -86,6 +88,8 @@ public class CarTextDetection {
         }
     }
 
+
+/*
     // Method to process messages from the SQS queue
     private static void processSQSMessages() {
         List<String> detectedTexts = new ArrayList<>();
@@ -121,11 +125,68 @@ public class CarTextDetection {
             if (detectedText != null) {
                 detectedTexts.add(detectedText);
             }
+	    
+	    System.out.println("\n\n +++++++ updated Detected Texts: " + detectedTexts + "\n++++++++++++++++\n");
 
             // Delete the message from the queue after processing
             deleteMessageFromSQS(message.receiptHandle());
         }
     }
+*/
+
+// Method to process messages from the SQS queue
+private static void processSQSMessages() {
+   // List<String> detectedTexts = new ArrayList<>();  // This list will accumulate texts from all messages
+
+    // Receive messages from the SQS queue
+    ReceiveMessageRequest receiveMessageRequest = ReceiveMessageRequest.builder()
+            .queueUrl(SQS_QUEUE_URL)
+            .maxNumberOfMessages(10)
+            .waitTimeSeconds(5)
+            .build();
+
+    // Fetch messages from SQS
+    List<Message> messages = sqsClient.receiveMessage(receiveMessageRequest).messages();
+
+    // If there are no messages, return to check for new messages later
+    if (messages.isEmpty()) {
+        return;
+    }
+
+    // Loop through each message
+    for (Message message : messages) {
+        String imageName = message.body();
+
+        System.out.println(" >>>>>>>>>>>>>>>>>>>>>>>>>> Received message: " + message.body());
+
+        // If the message is the termination signal (-1), stop processing
+        if (imageName.equals("-1")) {
+            System.out.println("Received termination signal. Stopping processing.\n");
+            
+            // Write accumulated detected texts to a file
+            writeDetectedTextsToFile(detectedTexts);
+            
+            // Delete the termination signal message from the queue
+            deleteMessageFromSQS(message.receiptHandle());
+            
+            // Exit the system after processing the termination signal
+            System.exit(0);
+        }
+
+        // Download and process the image to detect text
+        String detectedText = downloadAndDetectText(imageName);
+
+        // If text was detected, add it to the list of detected texts
+        if (detectedText != null) {
+            detectedTexts.add(detectedText); // Append new detected text to the list
+        }
+
+        // Delete the message from the queue after processing
+        deleteMessageFromSQS(message.receiptHandle());
+    }
+}
+
+//  new ends here
 
     // Method to download an image and detect text using Rekognition
     private static String downloadAndDetectText(String imageName) {
@@ -225,7 +286,7 @@ public class CarTextDetection {
                     .receiptHandle(receiptHandle)
                     .build();
             sqsClient.deleteMessage(deleteMessageRequest);
-            System.out.println("Deleted message from SQS with receipt handle: " + receiptHandle);
+            System.out.println("Deleted message from SQS...");
         } catch (Exception e) {
             e.printStackTrace();
         }
@@ -238,7 +299,7 @@ public class CarTextDetection {
 
         try {
             Files.write(Paths.get(outputFilePath), detectedTexts, StandardOpenOption.CREATE);
-            System.out.println(" ************************** \n\n Wrote detected texts to file: " + outputFilePath);
+	    System.out.println("\n************************** \n\n Wrote detected texts to file: " + outputFilePath);
         } catch (IOException e) {
             System.err.println("Failed to write detected texts to file.");
             e.printStackTrace();
