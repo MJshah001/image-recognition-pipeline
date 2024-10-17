@@ -4,6 +4,8 @@
 
 This project, as shown in the architecture diagram, involves two EC2 instances working in parallel and communicating through SQS (Simple Queue Service) to perform image recognition tasks using AWS Rekognition.
 
+![Architecture](https://github.com/MJshah001/image-recognition-pipeline/blob/main/Architecture%20diagram.jpg)
+
 ### EC2 Instance A:
 - Retrieves images from the S3 bucket.
 - Performs car detection using AWS Rekognition.
@@ -169,7 +171,7 @@ mvn exec:java
 cd textdetection
 ```
 
-*Modify the Java Code with Your SQS Queue URL**:
+**Modify the Java Code with Your SQS Queue URL**:
 
 ```bash
 nano src/main/java/com/myapp/CarTextDetection.java
